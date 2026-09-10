@@ -2,35 +2,25 @@
 
 namespace Database\Seeders;
 
-use App\Models\Priviledge;
-use App\Models\Role;
 use Illuminate\Database\Seeder;
+use App\Models\Role;
 
 class RoleSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     *
-     * @return void
-     */
-    public function run()
+    public function run(): void
     {
-        if(Role::all()->count() == 0) {
-            $roles = [
-                [
-                    'name' => 'Super Admin',
-                    'description' => 'This is superadmin user',
-                    'created_at' => date('Y-m-d H:i:s'),
-                    'updated_at' => date('Y-m-d H:i:s'),
-                ],
-                [
-                    'name' => 'Admin',
-                    'description' => 'This is admin user',
-                    'created_at' => date('Y-m-d H:i:s'),
-                    'updated_at' => date('Y-m-d H:i:s'),
-                ],
-            ];
-            Role::insert($roles);
-        }
+        Role::updateOrCreate(
+            ['name' => 'Super Admin'],
+            [
+                'description' => 'Memiliki akses penuh terhadap seluruh fitur CMS.',
+            ]
+        );
+
+        Role::updateOrCreate(
+            ['name' => 'Admin'],
+            [
+                'description' => 'Administrator dengan akses terbatas sesuai privilege.',
+            ]
+        );
     }
 }

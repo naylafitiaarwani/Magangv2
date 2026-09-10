@@ -2,50 +2,69 @@
 
 namespace Database\Seeders;
 
-use App\Models\Menu;
-use App\Models\Role;
-use App\Models\Priviledge;
 use Illuminate\Database\Seeder;
+use App\Models\Role;
+use App\Models\Menu;
+use App\Models\Priviledge;
 
 class PriviledgeSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     *
-     * @return void
-     */
-    public function run()
+    public function run(): void
     {
+        $superAdmin = Role::where('name', 'Super Admin')->first();
+        $admin = Role::where('name', 'Admin')->first();
 
-        if(Priviledge::all()->count() == 0) {
-            $roles = Role::all();
-            foreach ($roles as $role) {
-                $rows = Menu::all();
-                $menus = [];
-                foreach ($rows as $menu) {
-                    if ($role->id == 1) {
-                        $menus[] = [
-                            'role_id' => $role->id,
-                            'menu_id' => $menu->id,
-                            'view' => 1,
-                            'add' => 1,
-                            'edit' => 1,
-                            'delete' => 1,
-                            'other' => 1,
-                        ];
-                    } else {
-                        $menus[] = [
-                            'role_id' => $role->id,
-                            'menu_id' => $menu->id,
-                            'view' => 0,
-                            'add' => 0,
-                            'edit' => 0,
-                            'delete' => 0,
-                            'other' => 0,
-                        ];
-                    }
-                }
-                Priviledge::insert($menus);
+        $menuNames = [
+            'Manage Menu',
+            'Manage Group-Menu',
+            'Manage Role',
+            'Manage User',
+            'Manage Wisata',
+            'Manage Budaya',
+            'Manage Kuliner',
+            'Manage UMKM',
+            'Manage Sejarah',
+        ];
+
+        foreach ($menuNames as $menuName) {
+            $menu = Menu::where('name', $menuName)->first();
+
+            if (!$menu) {
+                continue;
+            }
+
+            // Super Admin: full access
+            if ($superAdmin) {
+                Priviledge::updateOrCreate(
+                    [
+                        'role_id' => $superAdmin->id,
+                        'menu_id' => $menu->id,
+                    ],
+                    [
+                        'view' => 1,
+                        'add' => 1,
+                        'edit' => 1,
+                        'delete' => 1,
+                        'other' => 1,
+                    ]
+                );
+            }
+
+            // Admin: no access by default
+            if ($admin) {
+                Priviledge::updateOrCreate(
+                    [
+                        'role_id' => $admin->id,
+                        'menu_id' => $menu->id,
+                    ],
+                    [
+                        'view' => 0,
+                        'add' => 0,
+                        'edit' => 0,
+                        'delete' => 0,
+                        'other' => 0,
+                    ]
+                );
             }
         }
     }

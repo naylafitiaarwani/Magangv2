@@ -20,13 +20,88 @@ class CheckPriviledge
      */
     public function handle(Request $request, Closure $next)
     {
-        $role = Session::get('user');
-        $user_id = Session::get('user')['id'];
+        $user = Session::get('user');
+
+        $role = $user['role_id'] ?? null;
+        $user_id = $user['id'] ?? null;
+
         $path = $request->getPathInfo();
+
         $path = str_replace('/fn_get_data', '', $path);
         $path = str_replace('/fn-get-data', '', $path);
-        $allow = false;
 
+        // Hilangkan trailing slash
+        $path = rtrim($path, '/') ?: '/';
+
+        $allow = false;
+// Permission untuk route Produk UMKM
+$isProdukUmkm = preg_match(
+    '#^/admin/umkm/\d+/produk(?:/.*)?$#',
+    $path
+);
+
+if ($isProdukUmkm) {
+
+    $checkMenu = Menu::where('url', '/admin/umkm')
+        ->withTrashed()
+        ->first();
+
+    if ($checkMenu) {
+
+        $checkPriv = Priviledge::where('role_id', $role)
+            ->where('menu_id', $checkMenu->id)
+            ->first();
+
+        if ($checkPriv) {
+
+            // Lihat daftar produk
+            if (
+                $request->isMethod('GET') &&
+                !str_contains($path, '/create') &&
+                !str_contains($path, '/edit')
+            ) {
+                $allow = $checkPriv->view == 1;
+            }
+
+            // Tambah produk
+            elseif (
+                str_contains($path, '/create') ||
+                $request->isMethod('POST')
+            ) {
+                $allow =
+                    $checkPriv->add == 1 ||
+                    $checkPriv->edit == 1;
+            }
+
+            // Edit produk
+            elseif (
+                str_contains($path, '/edit') ||
+                $request->isMethod('PUT') ||
+                $request->isMethod('PATCH')
+            ) {
+                $allow = $checkPriv->edit == 1;
+            }
+
+            // Hapus produk
+            elseif ($request->isMethod('DELETE')) {
+                $allow = $checkPriv->delete == 1;
+            }
+        }
+    }
+
+    if (!$allow) {
+        if ($request->wantsJson()) {
+            return response()->json([
+                'status' => 401,
+                'message' => 'You don\'t have priviledge to view this page'
+            ], 403);
+        }
+
+        abort(403);
+    }
+
+    return $next($request);
+}
         // CREATE
         if (strpos($path, 'create') || strpos($path, 'store')) {
             if (strpos($path, 'create')) {

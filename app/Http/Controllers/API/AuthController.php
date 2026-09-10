@@ -2,18 +2,78 @@
 
 namespace App\Http\Controllers\API;
 
+use \Firebase\JWT\JWT;
 use App\Http\Controllers\Controller;
+use App\Models\Role;
+use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Session;
-use Illuminate\Support\Facades\Auth;
-use \Firebase\JWT\JWT;
-use Illuminate\Support\Facades\Hash;
-use Validator;
-use App\Models\User;
-
+use Illuminate\Support\Facades\Validator;
 class AuthController extends Controller
 {
+    /**
+     * Registrasi akun baru untuk pengunjung website (bukan admin/CMS).
+     * Role "Pengunjung" dibuat otomatis kalau belum ada.
+     */
+    public function register(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|unique:users,email',
+            'phone' => 'nullable|string|max:30',
+            'password' => 'required|string|min:6',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => $validator->errors()->first(),
+            ], 400);
+        }
+
+        $role = Role::firstOrCreate(
+            ['name' => 'Pengunjung'],
+            ['description' => 'Pengguna umum yang mendaftar melalui website.']
+        );
+
+        $user = User::create([
+            'name' => $request->name,
+            'email' => $request->email,
+            'phone' => $request->phone ?? '',
+            'password' => Hash::make($request->password),
+            'image' => '',
+            'role_id' => $role->id,
+        ]);
+
+        // Langsung login setelah registrasi supaya UX lebih ringkas
+        $payload = [
+            'iss' => 'member-service',
+            'sub' => $user->id,
+            'iat' => time(),
+            'exp' => time() + 60 * 60 * 24,
+            'scope' => 'development',
+            'platform' => 'frontend',
+            'data' => [
+                'id' => $user->id,
+                'role_id' => $user->role_id,
+                'scope' => 'development',
+                'platform' => 'frontend',
+            ],
+        ];
+
+        $token = JWT::encode($payload, env('JWT_SECRET'), 'HS256');
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Registrasi berhasil',
+            'data' => $user,
+            'token' => $token,
+        ], 201);
+    }
+
     public function doLogin(Request $request)
     {
         $validator = Validator::make($request->all(), [
@@ -35,20 +95,25 @@ class AuthController extends Controller
 
                 // TOKEN PAYLOAD
                 $payload = [
-                    'iss' => "member-service", // Issuer of the token
-                    'sub' => $data->id, // Subject of the token
-                    'iat' => time(), // Time when JWT was issued.
+                    'iss' => 'member-service',
+                    'sub' => $data->id,
+                    'iat' => time(),
                     'exp' => time() + 60 * 60 * 24,
                     'scope' => 'development',
                     'platform' => 'frontend',
                     'data' => [
                         'id' => $data->id,
+                        'role_id' => $data->role_id,
                         'scope' => 'development',
                         'platform' => 'frontend',
-                    ]
+                    ],
                 ];
-                $token = JWT::encode($payload, env('JWT_SECRET'), 'HS256');
 
+                $token = JWT::encode(
+                    $payload,
+                    env('JWT_SECRET'),
+                    'HS256'
+                );
                 return response()->json([
                     'success' => true,
                     'message' => 'Login success',
@@ -65,8 +130,25 @@ class AuthController extends Controller
         ], 400);
     }
 
-    public function profile(Request $request) {
-        $data = User::where('id', $request->userData->id)->first();
+    public function profile(Request $request)
+    {
+        $userData = $request->attributes->get('userData');
+
+        if (!$userData || empty($userData->id)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'User tidak ditemukan dari access token.',
+            ], 401);
+        }
+
+        $data = User::find($userData->id);
+
+        if (!$data) {
+            return response()->json([
+                'success' => false,
+                'message' => 'User tidak ditemukan.',
+            ], 404);
+        }
 
         return response()->json([
             'success' => true,
@@ -78,64 +160,84 @@ class AuthController extends Controller
     public function profileUpdate(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'email'  =>  'required',
-            'name'  =>  'required',
-            'phone'  =>  'required',
+            'email' => 'required',
+            'name' => 'required',
+            'phone' => 'required',
         ]);
+
         if ($validator->fails()) {
             return response()->json([
                 'success' => false,
                 'message' => $validator->errors()->first(),
             ], 400);
         }
+
+        $userData = $request->attributes->get('userData');
+
+        if (!$userData || empty($userData->id)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'User tidak ditemukan dari access token.',
+            ], 401);
+        }
+
+        $userId = $userData->id;
 
         $param = $request->only('email', 'name', 'phone');
 
         // image handling
         if ($request->hasFile('image')) {
             $file = $request->file('image');
+
             $allowedFileTypes = ['png', 'jpg', 'jpeg'];
             $extension = $file->getClientOriginalExtension();
+
             if (!in_array($extension, $allowedFileTypes)) {
-                return redirect()->back()->with('error', 'File type not allowed. Only png and jpg files are allowed.');
+                return response()->json([
+                    'success' => false,
+                    'message' => 'File type not allowed. Only png and jpg files are allowed.',
+                ], 422);
             }
 
-            $name_original = date('YmdHis').'_'.$file->getClientOriginalName();
-            $filenames[] = $name_original;
-            $filesizes[] = $file->getSize();
-            $file->move(public_path('uploadedFile/image/user'), $name_original);
+            $name_original = date('YmdHis') . '_' . $file->getClientOriginalName();
+
+            $file->move(
+                public_path('uploadedFile/image/user'),
+                $name_original
+            );
+
             $files = url('uploadedFile/image/user') . '/' . $name_original;
-            
+
             $param['image'] = $files;
-        } else {
-            $param['image'] = asset('assets/image/default-user.png');
         }
 
-        $data = User::where('id', $request->userData->id)->update($param);
+        $updated = User::where('id', $userId)->update($param);
 
-        if ($data) {
-            $user = User::where('id', $request->userData->id)->first();
+        if ($updated) {
+            $user = User::find($userId);
+
             return response()->json([
                 'success' => true,
                 'message' => 'Profile updated',
-                'data' => $data,
+                'data' => $user,
             ], 200);
-        } 
+        }
 
         return response()->json([
             'success' => false,
             'message' => 'Something went wrong',
-            'data' => (object) array(),
+            'data' => (object) [],
         ], 500);
     }
 
     public function changePassword(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'old_password'  =>  'required',
-            'new_password'  =>  'required',
-            'new_password_confirmation'  =>  'required|same:new_password',
+            'old_password' => 'required',
+            'new_password' => 'required',
+            'new_password_confirmation' => 'required|same:new_password',
         ]);
+
         if ($validator->fails()) {
             return response()->json([
                 'success' => false,
@@ -143,32 +245,45 @@ class AuthController extends Controller
             ], 400);
         }
 
-        $data = User::where('id', $request->userData->id)->first();
+        // Ambil data user dari JWT melalui middleware
+        $userData = $request->attributes->get('userData');
 
-        if (Hash::check($request->old_password, $data->password)) {
-            $param['password'] = Hash::make($request->new_password);
-            $update = User::where('id', $request->userData->id)->update($param);
-
-            if ($update) {
-                $user = User::where('id', $request->userData->id)->first();
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Password updated',
-                    'data' => $data,
-                ], 200);
-            } 
-
+        if (!$userData || empty($userData->id)) {
             return response()->json([
                 'success' => false,
-                'message' => 'Something went wrong',
-                'data' => (object) array(),
-            ], 500);
+                'message' => 'User tidak ditemukan dari access token.',
+            ], 401);
         }
 
+        $userId = $userData->id;
+
+        // Ambil data user dari database
+        $data = User::find($userId);
+
+        if (!$data) {
+            return response()->json([
+                'success' => false,
+                'message' => 'User tidak ditemukan.',
+            ], 404);
+        }
+
+        // Cek password lama
+        if (!Hash::check($request->old_password, $data->password)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid old password',
+                'data' => (object) [],
+            ], 400);
+        }
+
+        // Update password
+        $data->password = Hash::make($request->new_password);
+        $data->save();
+
         return response()->json([
-            'success' => false,
-            'message' => 'Invalid old password',
-            'data' => (object) array(),
-        ], 400);
+            'success' => true,
+            'message' => 'Password updated',
+            'data' => $data,
+        ], 200);
     }
 }

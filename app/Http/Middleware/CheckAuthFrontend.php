@@ -10,54 +10,60 @@ use Firebase\JWT\Key;
 
 class CheckAuthFrontend
 {
-    /**
-     * Handle an incoming request.
-     *
-     * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
-     */
     public function handle(Request $request, Closure $next): Response
     {
-        if (!$request->bearerToken() || $request->bearerToken() == '') {
+        $token = $request->bearerToken();
+
+        if (!$token) {
             return response()->json([
-                'message' => 'Access token not provided.',
                 'success' => false,
+                'message' => 'Access token not provided.',
             ], 401);
         }
-
 
         try {
-            $decode = JWT::decode($request->bearerToken(), new Key(env('JWT_SECRET'), 'HS256'));
-            
-            $request->userData = isset($decode->data) ? $decode->data : [];
-            if (!str_contains($request->url(), 'login') && empty($decode->data->id)) {
+            $decode = JWT::decode(
+                $token,
+                new Key(env('JWT_SECRET'), 'HS256')
+            );
+            if (empty($decode->data->id)) {
                 return response()->json([
-                    'message' => 'Please login to continue.',
                     'success' => false,
+                    'message' => 'Please login to continue.',
                 ], 401);
             }
+
+            $request->attributes->set('userData', $decode->data);
             return $next($request);
-        }
-        
-        // EXPIRED
-        catch (\Firebase\JWT\ExpiredException $e) {
+
+        } catch (\Firebase\JWT\ExpiredException $e) {
+
             return response()->json([
+                'success' => false,
                 'message' => 'Expired access token.',
-                'success' => false,
             ], 401);
-        } 
-        
-        // INVALID
-        catch (\Firebase\JWT\SignatureInvalidException $e) {
+
+        } catch (\Firebase\JWT\SignatureInvalidException $e) {
+
             return response()->json([
+                'success' => false,
                 'message' => 'Access token signature is invalid.',
-                'success' => false,
             ], 401);
-        }
-        catch (\UnexpectedValueException $e) {
+
+        } catch (\UnexpectedValueException $e) {
+
             return response()->json([
-                'message' => 'Token signature is invalid.',
                 'success' => false,
+                'message' => 'Token signature is invalid.',
+            ], 401);
+
+        } catch (\Throwable $e) {
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid access token.',
             ], 401);
         }
-    }
+
+   }
 }
