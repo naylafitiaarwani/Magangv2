@@ -17,6 +17,11 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware) {
         //
+        $middleware->alias([
+    'auth.frontend' => \App\Http\Middleware\CheckAuthFrontend::class,
+    'api.role' => \App\Http\Middleware\CheckApiRole::class,
+    'api.privilege' => \App\Http\Middleware\CheckApiPriviledge::class,
+]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
 

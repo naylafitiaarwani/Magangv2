@@ -24,6 +24,7 @@ class WisataResource extends JsonResource
             'latitude' => $this->latitude,
             'longitude' => $this->longitude,
             'is_active' => (bool) $this->is_active,
+            'is_tiket_aktif' => (bool) $this->is_tiket_aktif,
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
         ];

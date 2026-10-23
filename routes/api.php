@@ -53,6 +53,7 @@ Route::post('register', [AuthController::class, 'register']);
 
 Route::get('wisata', [WisataController::class, 'index']);
 Route::get('wisata/{slug}', [WisataController::class, 'show']);
+Route::get('wisata/{slug}/tiket', [TiketWisataController::class, 'index']);
 
 Route::get('budaya', [BudayaController::class, 'index']);
 Route::get('budaya/{slug}', [BudayaController::class, 'show']);

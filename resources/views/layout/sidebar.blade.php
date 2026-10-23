@@ -26,6 +26,14 @@
             </p>
           </a>
         </li>
+        <li class="nav-item">
+          <a href="{{url('/pengelola')}}" class="{{ (request()->is('pengelola') || request()->is('pengelola/*')) ? 'nav-link active' : 'nav-link' }}">
+            <i class="nav-icon fas fa-map-marked-alt"></i>
+            <p>
+              Wisata &amp; Tiket Saya
+            </p>
+          </a>
+        </li>
         @if (isset($sidebarMenus))
           @foreach ($sidebarMenus as $menu)
             <li class="nav-item {{ areActiveRoutes($menu['menuItem']) }}">

@@ -181,4 +181,47 @@ class PesananTiketController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Daftar pesanan tiket yang MASUK untuk satu wisata (dilihat oleh
+     * pengelola wisata itu sendiri atau admin). Beda dengan index() yang
+     * menampilkan riwayat belanja milik si pembeli.
+     */
+    public function pengelolaIndex(Request $request, Wisata $wisata)
+    {
+        $userData = $request->attributes->get('userData');
+
+        if (!$userData || empty($userData->id)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'User tidak ditemukan dari access token.',
+            ], 401);
+        }
+
+        $isAdmin = in_array((int) ($userData->role_id ?? 0), [1, 2], true);
+
+        if (!$isAdmin && $wisata->user_id != $userData->id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Anda tidak memiliki akses ke pesanan wisata ini.',
+            ], 403);
+        }
+
+        $pesanan = PesananTiket::with(['wisata', 'details'])
+            ->where('wisata_id', $wisata->id)
+            ->latest()
+            ->paginate($request->integer('per_page', 10));
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Pesanan masuk berhasil diambil',
+            'data' => PesananTiketResource::collection($pesanan),
+            'pagination' => [
+                'current_page' => $pesanan->currentPage(),
+                'last_page' => $pesanan->lastPage(),
+                'per_page' => $pesanan->perPage(),
+                'total' => $pesanan->total(),
+            ],
+        ]);
+    }
 }

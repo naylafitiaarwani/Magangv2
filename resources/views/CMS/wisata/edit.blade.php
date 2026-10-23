@@ -316,6 +316,37 @@
 
                 </div>
 
+                {{-- Tiket Online --}}
+                <div class="form-group">
+
+                    <div class="custom-control custom-switch">
+
+                        <input
+                            type="checkbox"
+                            name="is_tiket_aktif"
+                            value="1"
+                            class="custom-control-input"
+                            id="is_tiket_aktif"
+                            {{ old('is_tiket_aktif', $wisata->is_tiket_aktif) ? 'checked' : '' }}
+                        >
+
+                        <label
+                            class="custom-control-label"
+                            for="is_tiket_aktif"
+                        >
+                            Aktifkan Penjualan Tiket Online
+                        </label>
+
+                    </div>
+
+                    <small class="form-text text-muted">
+                        Kalau diaktifkan, pengelola wisata ini (lewat halaman
+                        "Wisata &amp; Tiket Saya") bisa menambahkan jenis tiket
+                        dan pengunjung bisa membeli tiket online lewat website.
+                    </small>
+
+                </div>
+
             </div>
 
             <div class="card-footer">

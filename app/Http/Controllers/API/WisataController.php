@@ -61,6 +61,32 @@ class WisataController extends Controller
         ]);
     }
 
+    /**
+     * Daftar wisata milik pengelola yang sedang login (hasil approve pengajuan).
+     * Dipakai oleh dashboard pengelola di frontend.
+     */
+    public function milikSaya(Request $request)
+    {
+        $userData = $request->attributes->get('userData');
+
+        if (!$userData || empty($userData->id)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'User tidak ditemukan dari access token.',
+            ], 401);
+        }
+
+        $wisata = Wisata::where('user_id', $userData->id)
+            ->latest()
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Wisata milik kamu berhasil diambil',
+            'data' => WisataResource::collection($wisata),
+        ]);
+    }
+
     public function update(
         UpdateWisataRequest $request,
         Wisata $wisata

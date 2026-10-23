@@ -92,9 +92,9 @@ $(".select-role").select2({
         processResults: function (data, params) {
             var page = params.page || 1;
             return {
-                results: $.map(data.results.items, function (item) { return {id: item.id, text: item.roleName}}),
-                pagination: {
-                // THE `10` SHOULD BE SAME AS `$resultCount FROM PHP, it is the number of records to fetch from table` 
+                results: $.map(data.results, function (item) { return {id: item.id, text: item.name}}),
+                                pagination: {
+                // THE `10` SHOULD BE SAME AS `$resultCount FROM PHP, it is the number of records to fetch from table`
                     more: false
                 }
             };

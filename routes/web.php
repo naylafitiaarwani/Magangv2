@@ -9,6 +9,8 @@ use App\Http\Controllers\CMS\User\UserController;
 use App\Http\Controllers\CMS\User\RoleController;
 use App\Http\Controllers\CMS\Master\RoleController as RoleMaster;
 use App\Http\Controllers\CMS\Master\WisataController;
+use App\Http\Controllers\CMS\Master\PengajuanWisataController;
+use App\Http\Controllers\CMS\Master\PengelolaController;
 use App\Http\Controllers\CMS\Master\BudayaController;
 use App\Http\Controllers\CMS\Master\UmkmController;
 use App\Http\Controllers\CMS\Master\ProdukUmkmController;
@@ -46,6 +48,23 @@ Route::middleware([CheckAuth::class])->group(function () {
 
         Route::get('profile', 'profile');
         Route::post('profile', 'profileUpdate');
+    });
+
+    // =========================
+    // WISATA & TIKET SAYA (khusus pengelola, siapa saja yang login)
+    // -------------------------
+    // Sengaja di luar grup CheckPriviledge: akses datanya sudah
+    // dibatasi lewat kepemilikan (wisata.user_id), bukan lewat
+    // sistem Menu/Priviledge, sama seperti halaman "profile".
+    // =========================
+    Route::prefix('pengelola')->group(function () {
+        Route::controller(PengelolaController::class)->group(function () {
+            Route::get('/', 'index');
+            Route::post('tiket/store', 'storeTiket');
+            Route::post('tiket/update/{id}', 'updateTiket');
+            Route::get('tiket/delete/{id}', 'deleteTiket');
+            Route::post('wisata/update/{id}', 'updateWisata');
+        });
     });
 
     Route::controller(DashboardController::class)->group(function () {
@@ -124,6 +143,20 @@ Route::middleware([CheckPriviledge::class])->group(function () {
         });
     });
 
+    // =========================
+    // PENGAJUAN WISATA (approve/reject)
+    // -------------------------
+    // Route sengaja bernama "update-status" (bukan "approve"/"reject")
+    // supaya cocok dengan CheckPriviledge middleware, yang mendeteksi
+    // hak akses "edit" lewat keyword "update" pada path.
+    // =========================
+    Route::prefix('admin/pengajuan-wisata')->group(function () {
+        Route::controller(PengajuanWisataController::class)->group(function () {
+            Route::get('/', 'index');
+            Route::post('update-status/{id}', 'updateStatus');
+        });
+    });
+
     Route::prefix('admin/budaya')->group(function () {
         Route::controller(BudayaController::class)->group(function () {
             Route::get('/', 'index');
@@ -168,52 +201,53 @@ Route::middleware([CheckPriviledge::class])->group(function () {
         });
     });
 
-// =========================
-// MANAGE EVENT
-// =========================
-Route::prefix('admin/event')->group(function () {
-    Route::controller(EventController::class)->group(function () {
-        Route::get('/', 'index');
-        Route::get('create', 'create');
-        Route::post('store', 'store');
-        Route::get('edit/{id}', 'edit');
-        Route::post('update/{id}', 'update');
-        Route::get('delete/{id}', 'delete');
+    // =========================
+    // MANAGE EVENT
+    // =========================
+    Route::prefix('admin/event')->group(function () {
+        Route::controller(EventController::class)->group(function () {
+            Route::get('/', 'index');
+            Route::get('create', 'create');
+            Route::post('store', 'store');
+            Route::get('edit/{id}', 'edit');
+            Route::post('update/{id}', 'update');
+            Route::get('delete/{id}', 'delete');
+        });
     });
-});
-Route::prefix('admin')->group(function () {
 
-    Route::get(
-        'umkm/{umkm}/produk',
-        [ProdukUmkmController::class, 'index']
-    )->name('admin.umkm.produk.index');
+    Route::prefix('admin')->group(function () {
 
-    Route::get(
-        'umkm/{umkm}/produk/create',
-        [ProdukUmkmController::class, 'create']
-    )->name('admin.umkm.produk.create');
+        Route::get(
+            'umkm/{umkm}/produk',
+            [ProdukUmkmController::class, 'index']
+        )->name('admin.umkm.produk.index');
 
-    Route::post(
-        'umkm/{umkm}/produk',
-        [ProdukUmkmController::class, 'store']
-    )->name('admin.umkm.produk.store');
+        Route::get(
+            'umkm/{umkm}/produk/create',
+            [ProdukUmkmController::class, 'create']
+        )->name('admin.umkm.produk.create');
 
-    Route::get(
-        'umkm/{umkm}/produk/{produk}/edit',
-        [ProdukUmkmController::class, 'edit']
-    )->name('admin.umkm.produk.edit');
+        Route::post(
+            'umkm/{umkm}/produk',
+            [ProdukUmkmController::class, 'store']
+        )->name('admin.umkm.produk.store');
 
-    Route::put(
-        'umkm/{umkm}/produk/{produk}',
-        [ProdukUmkmController::class, 'update']
-    )->name('admin.umkm.produk.update');
+        Route::get(
+            'umkm/{umkm}/produk/{produk}/edit',
+            [ProdukUmkmController::class, 'edit']
+        )->name('admin.umkm.produk.edit');
 
-    Route::delete(
-        'umkm/{umkm}/produk/{produk}',
-        [ProdukUmkmController::class, 'destroy']
-    )->name('admin.umkm.produk.destroy');
+        Route::put(
+            'umkm/{umkm}/produk/{produk}',
+            [ProdukUmkmController::class, 'update']
+        )->name('admin.umkm.produk.update');
 
-});
+        Route::delete(
+            'umkm/{umkm}/produk/{produk}',
+            [ProdukUmkmController::class, 'destroy']
+        )->name('admin.umkm.produk.destroy');
+
+    });
 });
 // end checking priviledge
 });

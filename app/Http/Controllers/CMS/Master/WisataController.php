@@ -38,6 +38,7 @@ class WisataController extends Controller
             'latitude' => 'nullable|numeric',
             'longitude' => 'nullable|numeric',
             'is_active' => 'nullable|boolean',
+            'is_tiket_aktif' => 'nullable|boolean',
         ]);
 
         $validated['slug'] = Str::slug($validated['nama']);
@@ -45,6 +46,7 @@ class WisataController extends Controller
         $validated['rating'] = $validated['rating'] ?? 0;
         $validated['jumlah_ulasan'] = $validated['jumlah_ulasan'] ?? 0;
         $validated['is_active'] = $request->has('is_active');
+        $validated['is_tiket_aktif'] = $request->has('is_tiket_aktif');
 
         /*
         |--------------------------------------------------------------------------
@@ -91,6 +93,7 @@ class WisataController extends Controller
             'latitude' => 'nullable|numeric',
             'longitude' => 'nullable|numeric',
             'is_active' => 'nullable|boolean',
+            'is_tiket_aktif' => 'nullable|boolean',
         ]);
 
         $validated['slug'] = Str::slug($validated['nama']);
@@ -98,6 +101,7 @@ class WisataController extends Controller
         $validated['rating'] = $validated['rating'] ?? 0;
         $validated['jumlah_ulasan'] = $validated['jumlah_ulasan'] ?? 0;
         $validated['is_active'] = $request->has('is_active');
+        $validated['is_tiket_aktif'] = $request->has('is_tiket_aktif');
 
         /*
         |--------------------------------------------------------------------------
