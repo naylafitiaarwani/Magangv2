@@ -1,4 +1,4 @@
-# Magang Contoh
+# Magang 
 
 Aplikasi web berbasis Laravel 11 untuk pengelolaan wisata, budaya, kuliner, UMKM, dan CMS.
 
