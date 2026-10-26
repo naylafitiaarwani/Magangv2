@@ -21,12 +21,14 @@ Di Windows, Laragon dapat digunakan untuk menyediakan PHP, MySQL, dan terminal. 
     cd Magangv2
     ```
 
-2. Pasang dependency PHP dan JavaScript:
+2. Pasang dependency backend dan asset Laravel:
 
     ```bash
     composer install
     npm install
     ```
+
+    `npm install` di folder ini hanya memasang Vite dan asset untuk Laravel, bukan aplikasi React.
 
 3. Buat file konfigurasi lokal `.env` dengan menyalin template. Di PowerShell (Windows):
 
@@ -55,7 +57,7 @@ Di Windows, Laragon dapat digunakan untuk menyediakan PHP, MySQL, dan terminal. 
     php artisan storage:link
     ```
 
-5. Jalankan aplikasi dan Vite di dua terminal:
+5. Jalankan backend Laravel dan Vite asset Laravel di dua terminal dari folder project backend:
 
     ```bash
     php artisan serve
@@ -65,7 +67,29 @@ Di Windows, Laragon dapat digunakan untuk menyediakan PHP, MySQL, dan terminal. 
     npm run dev
     ```
 
-    Buka URL yang ditampilkan oleh `php artisan serve` (biasanya `http://127.0.0.1:8000`). Untuk membuat asset produksi, jalankan `npm run build`.
+    Buka URL yang ditampilkan oleh `php artisan serve` (biasanya `http://127.0.0.1:8000`). Untuk membuat asset produksi Laravel, jalankan `npm run build`.
+
+## Setup frontend React terpisah
+
+Frontend React belum termasuk di repository backend ini. Jika tim menyimpan frontend di repository terpisah, setiap collaborator perlu clone kedua repository. Ganti `<URL-REPOSITORY-FRONTEND>` dengan URL repo React tim:
+
+```bash
+git clone <URL-REPOSITORY-FRONTEND> frontend
+cd frontend
+npm install
+```
+
+Buat file `.env.local` di folder frontend. Untuk Vite + React, isi alamat API backend lokal:
+
+```dotenv
+VITE_API_BASE_URL=http://127.0.0.1:8000/api
+```
+
+Pastikan kode React membaca variabel tersebut, misalnya `import.meta.env.VITE_API_BASE_URL`, dan gunakan sebagai dasar URL endpoint API. Jangan commit `.env.local`; konfigurasi lokal tiap collaborator dapat berbeda. Jika repository frontend menyediakan `.env.example`, salin file tersebut menjadi `.env.local` lalu isi nilainya.
+
+Jalankan backend dari folder backend (`php artisan serve`) dan frontend dari folder React (`npm run dev`) pada terminal berbeda. Buka URL yang dicetak oleh Vite React, biasanya `http://localhost:5173`. Endpoint pemeriksaan backend dapat diuji di `http://127.0.0.1:8000/api/health-check`.
+
+Backend saat ini mengizinkan CORS dari semua origin untuk development. Untuk production, batasi `allowed_origins` di `config/cors.php` ke domain frontend yang benar.
 
 ## Akun development
 
